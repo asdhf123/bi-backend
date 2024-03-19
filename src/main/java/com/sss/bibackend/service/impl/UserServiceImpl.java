@@ -121,7 +121,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Override
     public User getLoginUser(HttpServletRequest request) {
         //判断是否已登录
-        User user = (User)request.getSession().getAttribute(USER_LOGIN_STATE);
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User user = (User)userObj;
         if(user == null){
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR,"未登录");
         }

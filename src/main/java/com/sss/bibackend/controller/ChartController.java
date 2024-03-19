@@ -255,6 +255,7 @@ public class ChartController {
             return queryWrapper;
         }
         Long id = chartQueryRequest.getId();
+        String name = chartQueryRequest.getName();
         String goal = chartQueryRequest.getGoal();
         String chartType = chartQueryRequest.getChartType();
         Long userId = chartQueryRequest.getUserId();
@@ -263,6 +264,7 @@ public class ChartController {
 
         // 拼接查询条件
         queryWrapper.eq(id!=null && id>0,"id",id);
+        queryWrapper.like(StringUtils.isNotBlank(name),"name",name);
         queryWrapper.eq(StringUtils.isNotBlank(goal),"goal",goal);
         queryWrapper.eq(StringUtils.isNotBlank(chartType),"chartType",chartType);
         queryWrapper.eq(ObjectUtils.isNotEmpty(userId),"userId",userId);
@@ -270,5 +272,7 @@ public class ChartController {
         queryWrapper.orderBy(SqlUtils.validSortField(sortField),sortOrder.equals(CommonConstant.SORT_ORDER_ASC),sortField);
         return queryWrapper;
     }
+
+
 
 }
