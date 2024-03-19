@@ -61,6 +61,7 @@ public class UserController {
      * @param request
      * @return
      */
+    @PostMapping("/login")
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginDTO userLoginDTO, HttpServletRequest request){
         //1.校验是否为null
         if(userLoginDTO == null){
