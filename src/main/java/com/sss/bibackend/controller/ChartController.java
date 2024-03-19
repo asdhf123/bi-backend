@@ -16,19 +16,25 @@ import com.sss.bibackend.model.dto.chart.ChartAddRequest;
 import com.sss.bibackend.model.dto.chart.ChartEditRequest;
 import com.sss.bibackend.model.dto.chart.ChartQueryRequest;
 import com.sss.bibackend.model.dto.chart.ChartUpdateRequest;
+import com.sss.bibackend.model.dto.chart.dto.GetChartByAiDTO;
 import com.sss.bibackend.model.entity.Chart;
 import com.sss.bibackend.model.entity.User;
 import com.sss.bibackend.service.ChartService;
 import com.sss.bibackend.service.UserService;
+import com.sss.bibackend.utils.ExcelUtils;
 import com.sss.bibackend.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -273,6 +279,38 @@ public class ChartController {
         return queryWrapper;
     }
 
+    /**
+     * 文件上传
+     *
+     * @param multipartFile
+     * @param getChartByAiDTO
+     * @param request
+     * @return
+     */
+    @PostMapping("/getchart")
+    public BaseResponse<String> getChartByAi(@RequestPart("file") MultipartFile multipartFile,
+                                             GetChartByAiDTO getChartByAiDTO, HttpServletRequest request) {
+        //验空
+        String name = getChartByAiDTO.getName();
+        String charType = getChartByAiDTO.getCharType();
+        String goal = getChartByAiDTO.getGoal();
+        if(StringUtils.isBlank(name)){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"名称不能为空");
+        }
+        if(StringUtils.isBlank(goal)){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"目标不能为空！");
+        }
+        try {
+            String fileMessage = ExcelUtils.excelToCsv(multipartFile);
+            System.out.println(fileMessage);
+        } catch (IOException e) {
+            log.error("文件处理失败",e);
+            throw new RuntimeException(e);
+        }
 
+
+        return ResultUtils.success("fileMessage");
+
+    }
 
 }
