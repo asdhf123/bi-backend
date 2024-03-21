@@ -1,4 +1,4 @@
-package com.sss.bibackend.model.dto.chart.dto;
+package com.sss.bibackend.model.dto.chart;
 
 import lombok.Data;
 

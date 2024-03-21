@@ -86,6 +86,12 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- 讯飞星火AI模型 -->
+        <dependency>
+            <groupId>io.github.briqt</groupId>
+            <artifactId>xunfei-spark4j</artifactId>
+            <version>1.2.0</version>
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>

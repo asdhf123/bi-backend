@@ -12,11 +12,12 @@ import com.sss.bibackend.common.ResultUtils;
 import com.sss.bibackend.constant.CommonConstant;
 import com.sss.bibackend.constant.UserConstant;
 import com.sss.bibackend.exception.BusinessException;
+import com.sss.bibackend.manager.AiManager;
 import com.sss.bibackend.model.dto.chart.ChartAddRequest;
 import com.sss.bibackend.model.dto.chart.ChartEditRequest;
 import com.sss.bibackend.model.dto.chart.ChartQueryRequest;
 import com.sss.bibackend.model.dto.chart.ChartUpdateRequest;
-import com.sss.bibackend.model.dto.chart.dto.GetChartByAiDTO;
+import com.sss.bibackend.model.dto.chart.GetChartByAiDTO;
 import com.sss.bibackend.model.entity.Chart;
 import com.sss.bibackend.model.entity.User;
 import com.sss.bibackend.service.ChartService;
@@ -25,7 +26,6 @@ import com.sss.bibackend.utils.ExcelUtils;
 import com.sss.bibackend.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
@@ -33,9 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
-import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 /**
  * 图表接口
@@ -44,6 +42,8 @@ import java.util.List;
 @RequestMapping("/chart")
 @Slf4j
 public class ChartController {
+    @Resource
+    private AiManager aiManager;
 
     @Resource
     private ChartService chartService;
@@ -280,7 +280,7 @@ public class ChartController {
     }
 
     /**
-     * 文件上传
+     * AI生成图表
      *
      * @param multipartFile
      * @param getChartByAiDTO
@@ -300,17 +300,30 @@ public class ChartController {
         if(StringUtils.isBlank(goal)){
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"目标不能为空！");
         }
+        String fileMessage;
         try {
-            String fileMessage = ExcelUtils.excelToCsv(multipartFile);
+            fileMessage = ExcelUtils.excelToCsv(multipartFile);
             System.out.println(fileMessage);
         } catch (IOException e) {
             log.error("文件处理失败",e);
             throw new RuntimeException(e);
         }
-
-
-        return ResultUtils.success("fileMessage");
-
+        //用户输入
+        StringBuffer userInput = new StringBuffer();
+        userInput.append("你是一个数据分析师和前端开发专家，接下来我会按照以下固定格式给你提供内容：\n" +
+                "分析需求：\n" +
+                "{数据分析的需求或者目标}\n" +
+                "原始数据：\n" +
+                "{csv格式的原始数据，用,作为分隔符}\n" +
+                "请根据这两部分内容，按照以下指定格式生成内容（此外不要输出任何多余的开头、结尾、注释）\n" +
+                "【【【【【\n" +
+                "{前端 Echarts V5 的 option 配置对象js代码，合理地将数据进行可视化，不要生成任何多余的内容，比如注释}\n" +
+                "【【【【【\n" +
+                "{明确的数据分析结论、越详细越好，不要生成多余的注释}").append("\n");
+        userInput.append("分析目标:").append(goal).append("\n");
+        userInput.append("原始数据:").append(fileMessage).append("\n");
+        String result = aiManager.doChat(userInput.toString());
+        return ResultUtils.success(result);
     }
 
 }
