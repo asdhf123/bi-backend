@@ -1,4 +1,5 @@
 package com.sss.bibackend.controller;
+import java.util.Date;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -13,6 +14,7 @@ import com.sss.bibackend.constant.CommonConstant;
 import com.sss.bibackend.constant.UserConstant;
 import com.sss.bibackend.exception.BusinessException;
 import com.sss.bibackend.manager.AiManager;
+import com.sss.bibackend.manager.RedisLimiterManager;
 import com.sss.bibackend.model.dto.chart.ChartAddRequest;
 import com.sss.bibackend.model.dto.chart.ChartEditRequest;
 import com.sss.bibackend.model.dto.chart.ChartQueryRequest;
@@ -20,6 +22,7 @@ import com.sss.bibackend.model.dto.chart.ChartUpdateRequest;
 import com.sss.bibackend.model.dto.chart.GetChartByAiDTO;
 import com.sss.bibackend.model.entity.Chart;
 import com.sss.bibackend.model.entity.User;
+import com.sss.bibackend.model.vo.chart.BiResponse;
 import com.sss.bibackend.service.ChartService;
 import com.sss.bibackend.service.UserService;
 import com.sss.bibackend.utils.ExcelUtils;
@@ -50,6 +53,8 @@ public class ChartController {
 
     @Resource
     private UserService userService;
+    @Resource
+    private RedisLimiterManager redisLimiterManager;
 
     // region 增删改查
 
@@ -212,7 +217,7 @@ public class ChartController {
         }
         Page<Chart> chartPage = chartService.page(new Page<>(current, size),
                 this.getQueryWrapper(chartQueryRequest));
-        return ResultUtils.success(chartService.getChartVOPage(chartPage, request));
+        return ResultUtils.success(chartPage);
     }
 
     // endregion
@@ -288,11 +293,11 @@ public class ChartController {
      * @return
      */
     @PostMapping("/getchart")
-    public BaseResponse<String> getChartByAi(@RequestPart("file") MultipartFile multipartFile,
+    public BaseResponse<BiResponse> getChartByAi(@RequestPart("file") MultipartFile multipartFile,
                                              GetChartByAiDTO getChartByAiDTO, HttpServletRequest request) {
         //验空
         String name = getChartByAiDTO.getName();
-        String charType = getChartByAiDTO.getCharType();
+        String chartType = getChartByAiDTO.getChartType();
         String goal = getChartByAiDTO.getGoal();
         if(StringUtils.isBlank(name)){
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"名称不能为空");
@@ -300,10 +305,15 @@ public class ChartController {
         if(StringUtils.isBlank(goal)){
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"目标不能为空！");
         }
-        String fileMessage;
+        //获取用户登陆信息
+        User user = userService.getLoginUser(request);
+        //限流判断，每个用户一个限流器
+        redisLimiterManager.doRateLimit("getChartByAi_"+user.getId());
+
+        String csvData;
         try {
-            fileMessage = ExcelUtils.excelToCsv(multipartFile);
-            System.out.println(fileMessage);
+            csvData = ExcelUtils.excelToCsv(multipartFile);
+            System.out.println(csvData);
         } catch (IOException e) {
             log.error("文件处理失败",e);
             throw new RuntimeException(e);
@@ -311,19 +321,72 @@ public class ChartController {
         //用户输入
         StringBuffer userInput = new StringBuffer();
         userInput.append("你是一个数据分析师和前端开发专家，接下来我会按照以下固定格式给你提供内容：\n" +
-                "分析需求：\n" +
+                "分析目标：\n" +
                 "{数据分析的需求或者目标}\n" +
+                "图表类型：\n"+
+                "{指定图表类型,如折线图，柱状图等}"+
                 "原始数据：\n" +
                 "{csv格式的原始数据，用,作为分隔符}\n" +
-                "请根据这两部分内容，按照以下指定格式生成内容（此外不要输出任何多余的开头、结尾、注释）\n" +
+                "请根据这两部分内容，按照以下指定格式生成内容（此外不要输出任何多余的开头、结尾、注释）:\n" +
                 "【【【【【\n" +
                 "{前端 Echarts V5 的 option 配置对象js代码，合理地将数据进行可视化，不要生成任何多余的内容，比如注释}\n" +
                 "【【【【【\n" +
                 "{明确的数据分析结论、越详细越好，不要生成多余的注释}").append("\n");
+        userInput.append("输出内容格式示例：\n"+
+                "【【【【【\n" +
+                "{\n" +
+                "  \"title\": {\n" +
+                "    \"text\": \"网站访问量变化趋势\"\n" +
+                "  },\n" +
+                "  \"tooltip\": {\n" +
+                "    \"trigger\": \"axis\"\n" +
+                "  },\n" +
+                "  \"legend\": {\n" +
+                "    \"data\": [\"人数\"]\n" +
+                "  },\n" +
+                "  \"xAxis\": {\n" +
+                "    \"data\": [\"1\", \"2\", \"3\", \"4\"]\n" +
+                "  },\n" +
+                "  \"yAxis\": {},\n" +
+                "  \"series\": [\n" +
+                "    {\n" +
+                "      \"name\": \"人数\",\n" +
+                "      \"type\": \"{指定图表类型}\",\n" +
+                "      \"data\": [10, 20, 30, 50]\n" +
+                "    }\n" +
+                "  ]\n" +
+                "}\n" +
+                "【【【【【\n" +
+                "根据这些数据，我们可以得出以下结论......\n");
         userInput.append("分析目标:").append(goal).append("\n");
-        userInput.append("原始数据:").append(fileMessage).append("\n");
+        userInput.append("图表类型:").append(chartType).append("\n");
+        userInput.append("原始数据:").append(csvData).append("\n");
+
         String result = aiManager.doChat(userInput.toString());
-        return ResultUtils.success(result);
+        String[] splits = result.split("【【【【【");
+        if(splits.length<3){
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"AI生成错误");
+        }
+        String genChart = splits[1];
+        String genResult = splits[2];
+        //将图表存入数据库
+        Chart chart = new Chart();
+        chart.setGoal(goal);
+        chart.setName(name);
+        chart.setChartData(csvData);
+        chart.setChartType(chartType);
+        chart.setUserId(user.getId());
+        chart.setGenChart(genChart);
+        chart.setGenResult(genResult);
+        boolean saveReslt = chartService.save(chart);
+        if(!saveReslt){
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"图标保存失败");
+        }
+
+        BiResponse biResponse = new BiResponse();
+        biResponse.setGenChart(genChart);
+        biResponse.setGenResult(genResult);
+        return ResultUtils.success(biResponse);
     }
 
 }
