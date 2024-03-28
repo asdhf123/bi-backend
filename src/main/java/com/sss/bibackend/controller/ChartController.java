@@ -1,7 +1,9 @@
 package com.sss.bibackend.controller;
+import java.util.Arrays;
 import java.util.Date;
 
 
+import cn.hutool.core.io.FileUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
@@ -27,7 +29,9 @@ import com.sss.bibackend.service.ChartService;
 import com.sss.bibackend.service.UserService;
 import com.sss.bibackend.utils.ExcelUtils;
 import com.sss.bibackend.utils.SqlUtils;
+import jodd.io.upload.FileUpload;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -37,6 +41,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * 图表接口
@@ -304,6 +309,20 @@ public class ChartController {
         }
         if(StringUtils.isBlank(goal)){
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"目标不能为空！");
+        }
+        //校验文件
+        long size = multipartFile.getSize();
+        String originalFilename = multipartFile.getOriginalFilename();
+        //校验文件大小
+        final long TEN_MB = 10*1024*1024L;
+        if(size>TEN_MB){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"文件超过10M");
+        }
+        //校验文件后缀
+        String suffix = FileUtil.getSuffix(originalFilename);
+        final List<String> whiteFileSuffixList = Arrays.asList("xlsx","xls");
+        if(!whiteFileSuffixList.contains(suffix)){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"文件后缀不合规");
         }
         //获取用户登陆信息
         User user = userService.getLoginUser(request);

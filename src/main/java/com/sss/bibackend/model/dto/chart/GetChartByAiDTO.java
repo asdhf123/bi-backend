@@ -9,7 +9,7 @@ import java.io.Serializable;
 public class GetChartByAiDTO implements Serializable {
     private String name;
     private String goal;
-    private String charData;
-    private String charType;
+    private String chartData;
+    private String chartType;
     private static final long serialVersionUID = 1L;
 }

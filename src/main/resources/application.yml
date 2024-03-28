@@ -70,3 +70,8 @@ knife4j:
         api-rule: package
         api-rule-resources:
           - com.sss.bibackend.controller
+
+threadpool:
+  corePoolSize: 2
+  maximumPoolSize: 4
+  keepAliveTime: 60000
