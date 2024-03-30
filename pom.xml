@@ -112,6 +112,12 @@
             <artifactId>xunfei-spark4j</artifactId>
             <version>1.2.0</version>
         </dependency>
+        <!-- RabbitMQ -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+            <version>2.7.6</version>
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>

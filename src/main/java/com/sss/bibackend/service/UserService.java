@@ -2,6 +2,7 @@ package com.sss.bibackend.service;
 
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.sss.bibackend.model.entity.Chart;
 import com.sss.bibackend.model.entity.User;
 import com.sss.bibackend.model.vo.user.LoginUserVO;
 
@@ -27,4 +28,5 @@ public interface UserService extends IService<User> {
     boolean isAdmin(HttpServletRequest request);
 
     boolean isAdmin(User loginUser);
+
 }

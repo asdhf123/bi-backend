@@ -25,6 +25,8 @@ create table if not exists user
                userId       bigint                         null commnet '用户id',
                genChart     text                           null comment '生成的图表',
                genResult    text                           null comment '生成的数据',
+               status       varchar(128)    not null  default 'wait' comment 'wait,running,succeed,filed',
+               execMessage  text            null comment '执行信息',
                createTime   datetime     default CURRENT_TIMESTAMP not null comment '创建时间',
                updateTime   datetime     default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
                isDelete     tinyint      default 0                 not null comment '是否删除'
