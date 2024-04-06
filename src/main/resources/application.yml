@@ -44,6 +44,9 @@ spring:
     port: 5672
     username: guest
     password: guest
+#    listener:   竟然没生效
+#      direct:
+#        acknowledge-mode: manual
 server:
   address: 0.0.0.0
   port: 8108
@@ -80,3 +83,5 @@ threadpool:
   corePoolSize: 2
   maximumPoolSize: 4
   keepAliveTime: 60000
+
+# 腾讯云数据万象
