@@ -11,6 +11,8 @@
 - Hutool工具库
 
 ### 项目架构图
+![image](https://github.com/asdhf123/bi-backend/assets/131970336/3fe1933f-b2f1-4449-badc-6216ca29886d)
+
 
 ### 基本功能
 - 用户输入图表名称，图表类型，分析目标后上传Excel文件进行分析
